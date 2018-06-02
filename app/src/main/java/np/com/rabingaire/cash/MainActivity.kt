@@ -1,10 +1,12 @@
 package np.com.rabingaire.cash
 
-import android.support.v7.app.AppCompatActivity
+import android.graphics.Bitmap
 import android.os.Bundle
+import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.view.View
 import kotlinx.android.synthetic.main.activity_main.*
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -14,15 +16,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun onCaptureClick(view: View) {
+        cameraView.captureImage { cameraKitImage ->
+            var imageBitmap: Bitmap = cameraKitImage.bitmap
+            Log.d("Debug","Bitmap is created")
+        }
     }
 
     override fun onResume() {
         super.onResume()
-        camera.start()
+        cameraView.start()
     }
 
     override fun onPause() {
-        camera.stop()
         super.onPause()
+        cameraView.stop()
     }
+
+
 }

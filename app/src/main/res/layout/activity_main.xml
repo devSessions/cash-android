@@ -7,7 +7,7 @@
     tools:context=".MainActivity">
 
     <com.wonderkiln.camerakit.CameraView
-        android:id="@+id/camera"
+        android:id="@+id/cameraView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:adjustViewBounds="true"
