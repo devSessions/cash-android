@@ -22,3 +22,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 * Thank you [@kshitizrimal](https://github.com/kshitizrimal) for the AI model
 * Thank you [@awazgyawali](https://github.com/awazgyawali) for helping out and giving code suggestions during the process of project development
+
+## Reference
+* [KTFLITE](https://github.com/eddywm/KTFLITE) - Most of the code reference are taken from this repo in github
