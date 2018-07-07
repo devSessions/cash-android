@@ -1,9 +1,9 @@
 package np.com.rabingaire.cash
 
+import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
-import android.support.constraint.ConstraintLayout
 import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
@@ -13,6 +13,9 @@ import android.widget.TextView
 import com.wonderkiln.camerakit.*
 import java.util.*
 import java.util.concurrent.Executors
+import android.view.MotionEvent
+
+
 
 
 class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
@@ -34,9 +37,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     companion object {
-        private val MODEL_PATH = "mobilenet_quant_v1_224.tflite"
-        private val LABEL_PATH = "labels.txt"
-        private val INPUT_SIZE = 224
+        private const val MODEL_PATH = "cash_mobile_graph.lite"
+        private const val LABEL_PATH = "labels.txt"
+        private const val INPUT_SIZE = 224
     }
 
     lateinit var classifier: Classifier
@@ -50,6 +53,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private lateinit var dialogMessage: TextView
     private lateinit var dialog: AlertDialog
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -87,7 +91,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 bitmap = Bitmap.createScaledBitmap(bitmap, INPUT_SIZE, INPUT_SIZE, false)
 
                 val results = classifier.recognizeImage(bitmap)
-                var result: String = ""
+                var result: String
 
                 if (results.isNotEmpty()) {
                     result = results[0].toString()
@@ -114,6 +118,15 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             tts!!.speak("Computing Please Wait...", TextToSpeech.QUEUE_FLUSH, null,"")
             dialog.show()
         }
+        cameraView.setOnTouchListener({ _, event ->
+            if (event.action == MotionEvent.ACTION_DOWN) {
+                cameraView.captureImage()
+                // text to speech speech
+                tts!!.speak("Computing Please Wait...", TextToSpeech.QUEUE_FLUSH, null,"")
+                dialog.show()
+            }
+            true
+        })
     }
 
     override fun onResume() {

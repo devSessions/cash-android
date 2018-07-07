@@ -1,6 +1,5 @@
 package np.com.rabingaire.cash
 
-import android.annotation.SuppressLint
 import android.content.res.AssetManager
 import android.graphics.Bitmap
 import org.tensorflow.lite.Interpreter
@@ -15,6 +14,8 @@ import java.nio.MappedByteBuffer
 import java.nio.channels.FileChannel
 import java.util.*
 
+
+
 class Classifier(
         var interpreter: Interpreter? = null,
         var inputSize: Int = 0,
@@ -22,10 +23,12 @@ class Classifier(
 ) : IClassifier {
 
     companion object {
-        private val MAX_RESULTS = 3
-        private val BATCH_SIZE = 1
-        private val PIXEL_SIZE = 3
-        private val THRESHOLD = 0.1f
+        private const val MAX_RESULTS = 3
+        private const val BATCH_SIZE = 1
+        private const val PIXEL_SIZE = 3
+        private const val THRESHOLD = 0.1f
+        private const val IMAGE_MEAN = 128
+        private const val IMAGE_STD = 128.0f
 
         @Throws(IOException::class)
         fun create(assetManager: AssetManager,
@@ -46,7 +49,7 @@ class Classifier(
 
     override fun recognizeImage(bitmap: Bitmap): List<IClassifier.Recognition> {
         val byteBuffer = convertBitmapToByteBuffer(bitmap)
-        val result = Array(1) { ByteArray(labelList.size) }
+        val result = Array(1) { FloatArray(labelList.size) }
         interpreter!!.run(byteBuffer, result)
         return getSortedResult(result)
     }
@@ -79,43 +82,40 @@ class Classifier(
     }
 
     private fun convertBitmapToByteBuffer(bitmap: Bitmap): ByteBuffer {
-        val byteBuffer = ByteBuffer.allocateDirect(BATCH_SIZE * inputSize * inputSize * PIXEL_SIZE)
+        val byteBuffer = ByteBuffer.allocateDirect(4 * BATCH_SIZE * inputSize * inputSize * PIXEL_SIZE)
         byteBuffer.order(ByteOrder.nativeOrder())
         val intValues = IntArray(inputSize * inputSize)
         bitmap.getPixels(intValues, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
+        // Convert the image to floating point.
         var pixel = 0
         for (i in 0 until inputSize) {
             for (j in 0 until inputSize) {
                 val `val` = intValues[pixel++]
-                byteBuffer.put((`val` shr 16 and 0xFF).toByte())
-                byteBuffer.put((`val` shr 8 and 0xFF).toByte())
-                byteBuffer.put((`val` and 0xFF).toByte())
+                byteBuffer.putFloat(((`val` shr 16 and 0xff) - IMAGE_MEAN) / IMAGE_STD)
+                byteBuffer.putFloat(((`val` shr 8 and 0xff) - IMAGE_MEAN) / IMAGE_STD)
+                byteBuffer.putFloat(((`val` and 0xff) - IMAGE_MEAN) / IMAGE_STD)
             }
         }
         return byteBuffer
     }
 
-    private fun getSortedResult(labelProbArray: Array<ByteArray>): List<IClassifier.Recognition> {
-
+    private fun getSortedResult(labelProbArray: Array<FloatArray>): List<IClassifier.Recognition> {
         val pq = PriorityQueue(
                 MAX_RESULTS,
                 Comparator<IClassifier.Recognition> { (_, _, confidence1), (_, _, confidence2) -> Float.compare(confidence1, confidence2) })
-
         for (i in labelList.indices) {
-            val confidence = (labelProbArray[0][i].toInt() and 0xff) / 255.0f
+            val confidence = labelProbArray[0][i]
             if (confidence > THRESHOLD) {
                 pq.add(IClassifier.Recognition("" + i,
                         if (labelList.size > i) labelList[i] else "Unknown",
                         confidence))
             }
         }
-
         val recognitions = ArrayList<IClassifier.Recognition>()
         val recognitionsSize = Math.min(pq.size, MAX_RESULTS)
         for (i in 0 until recognitionsSize) {
             recognitions.add(pq.poll())
         }
-
         return recognitions
     }
 }
