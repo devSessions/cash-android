@@ -58,8 +58,11 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         setContentView(R.layout.activity_main)
         initTensorFlowAndLoadModel()
 
+        mp = MediaPlayer.create (this, R.raw.audio1)
+
         //Text to Speech
         tts = TextToSpeech(this, this)
+
         languagePreference = LanguagePreference(this)
 
 
@@ -93,6 +96,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
             if (event.action == MotionEvent.ACTION_DOWN) {
                 mp.stop() // stop media player if already something is playing
+                mp.reset()
                 // text to speech speech
                 tts!!.speak("Computing Please Wait...", TextToSpeech.QUEUE_FLUSH, null,"")
                 dialog.show()
@@ -128,6 +132,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         } else {
             if (status == TextToSpeech.SUCCESS) {
                 mp.stop() // stop media player if it's playing
+                mp.reset()
                 // set US English as language for tts
                 val result = tts!!.setLanguage(Locale.US)
 
