@@ -1,19 +1,25 @@
 package np.com.rabingaire.cash
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.media.MediaPlayer
 import android.os.Bundle
+import android.os.Vibrator
 import android.speech.tts.TextToSpeech
 import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
+import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.widget.Button
 import android.widget.TextView
-import com.wonderkiln.camerakit.*
+import com.camerakit.CameraKitView
 import java.util.*
 import java.util.concurrent.Executors
-import android.view.MotionEvent
+
 
 
 
@@ -21,19 +27,8 @@ import android.view.MotionEvent
 class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     // Implementation of TextToSpeech Abstract class
     override fun onInit(status: Int) {
-        if (status == TextToSpeech.SUCCESS) {
-            // set US English as language for tts
-            val result = tts!!.setLanguage(Locale.US)
-
-            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                Log.e("TTS","The Language specified is not supported!")
-            } else {
-                tts!!.speak("Please Touch the screen to capture image.", TextToSpeech.QUEUE_FLUSH, null,"")
-            }
-
-        } else {
-            Log.e("TTS", "Initilization Failed!")
-        }
+        textToSpeechStatus = status
+        playInitialMessage(textToSpeechStatus)
     }
 
     companion object {
@@ -42,9 +37,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         private const val INPUT_SIZE = 224
     }
 
-    lateinit var classifier: Classifier
+    private lateinit var classifier: Classifier
     private val executor = Executors.newSingleThreadExecutor()
-    private lateinit var cameraView: CameraView
+    private lateinit var cameraView: CameraKitView
     private lateinit var resultOutput: TextView
     private lateinit var captureButton: Button
     private lateinit var tts: TextToSpeech
@@ -52,14 +47,21 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private lateinit var dialogView: View
     private lateinit var dialogMessage: TextView
     private lateinit var dialog: AlertDialog
+    private lateinit var mp: MediaPlayer
+    private lateinit var languagePreference:LanguagePreference
+    private  var textToSpeechStatus: Int = 0
+    private  var result: String = ""
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         initTensorFlowAndLoadModel()
+
         //Text to Speech
         tts = TextToSpeech(this, this)
+        languagePreference = LanguagePreference(this)
+
 
         cameraView = findViewById(R.id.cameraView)
         resultOutput = findViewById(R.id.resultOutput)
@@ -75,68 +77,104 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         dialog = builder.create()
 
 
-        cameraView.addCameraKitListener(object : CameraKitEventListener {
-            override fun onEvent(cameraKitEvent: CameraKitEvent) {
-
-            }
-
-            override fun onError(cameraKitError: CameraKitError) {
-
-            }
-
-            override fun onImage(cameraKitImage: CameraKitImage) {
-
-                var bitmap = cameraKitImage.bitmap
-
-                bitmap = Bitmap.createScaledBitmap(bitmap, INPUT_SIZE, INPUT_SIZE, false)
-
-                val results = classifier.recognizeImage(bitmap)
-                var result: String
-
-                if (results.isNotEmpty()) {
-                    result = results[0].toString()
-                } else {
-                    result = "Can't identify please try again !!!"
-                }
-
-                dialog.dismiss()
-
-                // speak the result
-                tts!!.speak(result, TextToSpeech.QUEUE_FLUSH, null,"")
-
-                resultOutput.text = result
-            }
-
-            override fun onVideo(cameraKitVideo: CameraKitVideo) {
-
-            }
-        })
-
         captureButton.setOnClickListener {
-            cameraView.captureImage()
             // text to speech speech
             tts!!.speak("Computing Please Wait...", TextToSpeech.QUEUE_FLUSH, null,"")
             dialog.show()
+            cameraView.captureImage { _, photo ->
+                Thread(Runnable {
+                    onCaptureImage(photo)
+                    resultOutput.post { resultOutput.text = result }
+                }).start()
+            }
         }
-        cameraView.setOnTouchListener({ _, event ->
+
+        cameraView.setOnTouchListener { _, event ->
+
             if (event.action == MotionEvent.ACTION_DOWN) {
-                cameraView.captureImage()
+                mp.stop() // stop media player if already something is playing
                 // text to speech speech
                 tts!!.speak("Computing Please Wait...", TextToSpeech.QUEUE_FLUSH, null,"")
                 dialog.show()
+                cameraView.captureImage { _, photo ->
+                    Thread(Runnable {
+                        onCaptureImage(photo)
+                        resultOutput.post { resultOutput.text = result }
+                    }).start()
+                }
             }
             true
-        })
+        }
+    }
+
+    override  fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
+            languagePreference.setNepaliLanguage()
+
+            vibrate()
+
+            playInitialMessage(textToSpeechStatus)
+
+        }
+        return true
+    }
+
+    private fun playInitialMessage(status: Int) {
+        if(languagePreference.isNepaliLanguage()) {
+            tts.stop() // stop tts if it's playing
+            //Nepali audio
+            mp = MediaPlayer.create (this, R.raw.audio1)
+            mp.start()
+        } else {
+            if (status == TextToSpeech.SUCCESS) {
+                mp.stop() // stop media player if it's playing
+                // set US English as language for tts
+                val result = tts!!.setLanguage(Locale.US)
+
+                if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                    Log.e("TTS", "The Language specified is not supported!")
+                } else {
+                    tts!!.speak("Please Touch the screen to capture image.", TextToSpeech.QUEUE_FLUSH, null, "")
+                }
+
+            } else {
+                Log.e("TTS", "Initilization Failed!")
+            }
+        }
+    }
+
+    private fun vibrate() {
+        val vibratorService = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        vibratorService.vibrate(500)
+    }
+
+    private fun onCaptureImage(photo: ByteArray) {
+        var bitmap = BitmapFactory.decodeByteArray(photo, 0, photo.size)
+        bitmap = Bitmap.createScaledBitmap(bitmap, INPUT_SIZE, INPUT_SIZE, false)
+
+        val results = classifier.recognizeImage(bitmap)
+
+        result = if (results.isNotEmpty()) {
+            results[0].toString()
+        } else {
+            "Can't identify please try again !!!"
+        }
+
+        dialog.dismiss()
+
+        vibrate() // vibrate to give user feedback
+        // speak the result
+        tts!!.speak(result, TextToSpeech.QUEUE_FLUSH, null,"")
     }
 
     override fun onResume() {
         super.onResume()
-        cameraView.start()
+        cameraView.onResume()
     }
 
     override fun onPause() {
         super.onPause()
-        cameraView.stop()
+        cameraView.onPause()
     }
 
     override fun onDestroy() {
@@ -146,6 +184,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
         super.onDestroy()
         executor.execute { classifier.close() }
+        mp.release()
     }
 
     private fun initTensorFlowAndLoadModel() {

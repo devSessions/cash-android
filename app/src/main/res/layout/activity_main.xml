@@ -6,17 +6,12 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <com.wonderkiln.camerakit.CameraView
+    <com.camerakit.CameraKitView xmlns:app="http://schemas.android.com/apk/res-auto"
         android:id="@+id/cameraView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:adjustViewBounds="true"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
-
-    </com.wonderkiln.camerakit.CameraView>
+        app:camera_facing="back" />
 
     <TextView
         android:id="@+id/resultOutput"
