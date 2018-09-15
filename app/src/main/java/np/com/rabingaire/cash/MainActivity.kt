@@ -64,6 +64,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
         //Text to Speech
         tts = TextToSpeech(this, this)
+        audioPlayer = nepaliAudio.initialMessageAudio()
 
         languagePreference = LanguagePreference(this)
 
