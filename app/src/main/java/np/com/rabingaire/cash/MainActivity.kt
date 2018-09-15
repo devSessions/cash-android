@@ -5,6 +5,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.MediaPlayer
+
 import android.os.Bundle
 import android.os.Vibrator
 import android.speech.tts.TextToSpeech
@@ -47,7 +48,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private lateinit var dialogView: View
     private lateinit var dialogMessage: TextView
     private lateinit var dialog: AlertDialog
-    private lateinit var mp: MediaPlayer
+    private lateinit var nepaliAudio: NepaliAudio
+    private lateinit var audioPlayer: MediaPlayer
     private lateinit var languagePreference:LanguagePreference
     private  var textToSpeechStatus: Int = 0
     private  var result: String = ""
@@ -58,7 +60,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         setContentView(R.layout.activity_main)
         initTensorFlowAndLoadModel()
 
-        mp = MediaPlayer.create (this, R.raw.audio1)
+        nepaliAudio = NepaliAudio(this)
 
         //Text to Speech
         tts = TextToSpeech(this, this)
@@ -81,8 +83,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
 
         captureButton.setOnClickListener {
-            // text to speech speech
-            tts!!.speak("Computing Please Wait...", TextToSpeech.QUEUE_FLUSH, null,"")
             dialog.show()
             cameraView.captureImage { _, photo ->
                 Thread(Runnable {
@@ -95,10 +95,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         cameraView.setOnTouchListener { _, event ->
 
             if (event.action == MotionEvent.ACTION_DOWN) {
-                mp.stop() // stop media player if already something is playing
-                mp.reset()
-                // text to speech speech
-                tts!!.speak("Computing Please Wait...", TextToSpeech.QUEUE_FLUSH, null,"")
                 dialog.show()
                 cameraView.captureImage { _, photo ->
                     Thread(Runnable {
@@ -127,12 +123,12 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         if(languagePreference.isNepaliLanguage()) {
             tts.stop() // stop tts if it's playing
             //Nepali audio
-            mp = MediaPlayer.create (this, R.raw.audio1)
-            mp.start()
+            audioPlayer = nepaliAudio.initialMessageAudio()
+            audioPlayer.start()
         } else {
             if (status == TextToSpeech.SUCCESS) {
-                mp.stop() // stop media player if it's playing
-                mp.reset()
+                audioPlayer.stop() // stop media player if it's playing
+                audioPlayer.reset()
                 // set US English as language for tts
                 val result = tts!!.setLanguage(Locale.US)
 
@@ -158,18 +154,46 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         bitmap = Bitmap.createScaledBitmap(bitmap, INPUT_SIZE, INPUT_SIZE, false)
 
         val results = classifier.recognizeImage(bitmap)
+        playCashAudio(results)
 
-        result = if (results.isNotEmpty()) {
-            results[0].toString()
+    }
+
+    private fun playCashAudio(results: List<IClassifier.Recognition>) {
+        if(languagePreference.isNepaliLanguage()) {
+            tts.stop()
+            result = if (results.isNotEmpty()) {
+                results[0].toString()
+            } else {
+                "Can't identify please try again !!!"
+            }
+
+            var audioResult = if (results.isNotEmpty()) {
+                results[0].title
+            } else {
+                "Can't identify please try again !!!"
+            }
+
+            dialog.dismiss()
+
+            vibrate() // vibrate to give user feedback
+            audioPlayer = nepaliAudio.cashAudio(audioResult)
+            audioPlayer.start()
         } else {
-            "Can't identify please try again !!!"
+            audioPlayer.stop() // stop media player if it's playing
+            audioPlayer.reset()
+
+            result = if (results.isNotEmpty()) {
+                results[0].toString()
+            } else {
+                "Can't identify please try again !!!"
+            }
+
+            dialog.dismiss()
+
+            vibrate() // vibrate to give user feedback
+            // speak the result
+            tts!!.speak(result, TextToSpeech.QUEUE_FLUSH, null,"")
         }
-
-        dialog.dismiss()
-
-        vibrate() // vibrate to give user feedback
-        // speak the result
-        tts!!.speak(result, TextToSpeech.QUEUE_FLUSH, null,"")
     }
 
     override fun onResume() {
@@ -189,7 +213,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
         super.onDestroy()
         executor.execute { classifier.close() }
-        mp.release()
+        audioPlayer.release()
     }
 
     private fun initTensorFlowAndLoadModel() {
