@@ -33,7 +33,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     companion object {
-        private const val MODEL_PATH = "cash_mobile_graph.lite"
+        private const val MODEL_PATH = "cash.tflite"
         private const val LABEL_PATH = "labels.txt"
         private const val INPUT_SIZE = 224
     }
