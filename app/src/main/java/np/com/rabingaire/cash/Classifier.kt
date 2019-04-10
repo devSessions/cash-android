@@ -27,8 +27,8 @@ class Classifier(
         private const val BATCH_SIZE = 1
         private const val PIXEL_SIZE = 3
         private const val THRESHOLD = 0.1f
-        private const val IMAGE_MEAN = 128
-        private const val IMAGE_STD = 128.0f
+//        private const val IMAGE_MEAN = 128
+//        private const val IMAGE_STD = 128.0f
 
         @Throws(IOException::class)
         fun create(assetManager: AssetManager,
@@ -91,9 +91,9 @@ class Classifier(
         for (i in 0 until inputSize) {
             for (j in 0 until inputSize) {
                 val `val` = intValues[pixel++]
-                byteBuffer.putFloat(((`val` shr 16 and 0xff) - IMAGE_MEAN) / IMAGE_STD)
-                byteBuffer.putFloat(((`val` shr 8 and 0xff) - IMAGE_MEAN) / IMAGE_STD)
-                byteBuffer.putFloat(((`val` and 0xff) - IMAGE_MEAN) / IMAGE_STD)
+                byteBuffer.putFloat(((`val` shr 16 and 0xff) * 1.0f) / 255)
+                byteBuffer.putFloat(((`val` shr 8 and 0xff) * 1.0f) / 255)
+                byteBuffer.putFloat(((`val` and 0xff) * 1.0f) / 255)
             }
         }
         return byteBuffer
