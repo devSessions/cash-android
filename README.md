@@ -11,6 +11,9 @@ AI driven app that indentifies nepali currency build using native android
 ## Contributing
 Any contribution are heavily welcomed.
 
+## Final APK
+[Download](https://drive.google.com/file/d/1dltr5VBme3sAZWdRN_LIOgxFKffrRCN9/view?fbclid=IwAR3WTbh4UipXT-lGAXxayIR_q5t50FS6z5H3EsrxtoYyjaSXd1u0nPH618U)
+
 ## Authors
 
 * **Rabin Gaire** - *Wrote this app* - [@rabingaire](https://github.com/rabingaire)
