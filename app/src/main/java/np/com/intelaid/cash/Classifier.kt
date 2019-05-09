@@ -1,4 +1,4 @@
-package np.com.rabingaire.cash
+package np.com.intelaid.cash
 
 import android.content.res.AssetManager
 import android.graphics.Bitmap

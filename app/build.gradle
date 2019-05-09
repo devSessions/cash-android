@@ -7,7 +7,7 @@ apply plugin: 'kotlin-android-extensions'
 android {
     compileSdkVersion 27
     defaultConfig {
-        applicationId "np.com.rabingaire.cash"
+        applicationId "np.com.intelaid.cash"
         minSdkVersion 21
         targetSdkVersion 27
         versionCode 1
